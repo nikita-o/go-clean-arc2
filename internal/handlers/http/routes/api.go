@@ -2,13 +2,13 @@ package routes
 
 import (
 	"clean-arc-2/internal/handlers/http/controllers"
+	"clean-arc-2/internal/handlers/http/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
-func NewApiRouter(gin *gin.Engine, controllers controllers.Controllers) {
+func NewApiRouter(gin *gin.Engine, controllers *controllers.Controllers, middlewares *middlewares.Middlewares) {
 	apiRoute := gin.Group("api")
-	v1 := apiRoute.Group("v1")
+	versionApiRoute := apiRoute.Group(":version")
 
-	NewUserRouter(v1, controllers.UserController)
-
+	NewUserRouter(versionApiRoute, controllers.UserController)
 }

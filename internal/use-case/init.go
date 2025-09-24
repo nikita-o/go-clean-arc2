@@ -9,8 +9,12 @@ type UseCases struct {
 	UserUseCase user.UseCase
 }
 
-func NewUseCases(repositories repositories.Repositories) *UseCases {
+type DataInitUseCases struct {
+	Repositories *repositories.Repositories
+}
+
+func NewUseCases(data DataInitUseCases) *UseCases {
 	return &UseCases{
-		UserUseCase: NewUserUseCase(repositories.UserRepository),
+		UserUseCase: NewUserUseCase(data.Repositories.UserRepository),
 	}
 }

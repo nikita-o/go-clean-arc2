@@ -1,38 +1,58 @@
 package main
 
 import (
+	"clean-arc-2/internal/handlers/http"
 	"clean-arc-2/internal/handlers/http/controllers"
-	"clean-arc-2/internal/handlers/http/routes"
 	"clean-arc-2/internal/infrastructure/config"
 	"clean-arc-2/internal/infrastructure/database"
 	"clean-arc-2/internal/infrastructure/logger"
 	"clean-arc-2/internal/repositories"
-	use_case "clean-arc-2/internal/use-case"
-	"github.com/gin-gonic/gin"
+	"clean-arc-2/internal/use-case"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
+	"time"
 )
 
+type AppApi struct {
+	Config   *config.Config
+	Logger   *zap.Logger
+	Timeout  time.Duration
+	Database *pgxpool.Pool
+	//Redis        *redis.Client
+
+	Repositories *repositories.Repositories
+	UseCases     *use_case.UseCases
+	Controllers  *controllers.Controllers
+
+	HttpServer *http.HttpServer
+}
+
 func main() {
-	log := logger.NewLogger()
-	defer log.Sync()
+	app := AppApi{}
 
-	env := config.NewConfig()
-	pg := database.NewPostgresDatabase(env.DbUrl)
-	rep := repositories.NewRepositories(pg)
-	useCases := use_case.NewUseCases(*rep)
-	c := controllers.NewControllers(*useCases)
+	app.Config = config.NewConfig()
+	app.Logger = logger.NewLogger()
+	defer app.Logger.Sync()
+	app.Timeout = time.Duration(app.Config.ContextTimeout) * time.Second
 
-	gin.SetMode(gin.ReleaseMode)
-	r := gin.New()
-	r.Use(gin.Recovery())
-	//r.Use(middleware.ZapLoggerMiddleware(log))
+	// Инициализация сервисов приложения
+	app.Database = database.NewPostgresDatabase(app.Config.DbUrl)
 
-	//timeout := time.Duration(env.ContextTimeout) * time.Second
+	app.Repositories = repositories.NewRepositories(repositories.DataInitRepositories{
+		Database: app.Database,
+	})
 
-	routes.NewApiRouter(r, *c)
+	app.UseCases = use_case.NewUseCases(use_case.DataInitUseCases{
+		Repositories: app.Repositories,
+	})
 
-	err := r.Run(env.ServerAddress)
+	app.HttpServer = http.NewHttpServer(http.DataInitHttpServer{
+		UseCases: app.UseCases,
+	})
+	
+	err := app.HttpServer.Server.Run(app.Config.ServerAddress)
 	if err != nil {
-		log.Error(err.Error())
+		app.Logger.Error(err.Error())
 		return
 	}
 }

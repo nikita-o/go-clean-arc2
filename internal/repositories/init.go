@@ -9,8 +9,12 @@ type Repositories struct {
 	UserRepository user.Repository
 }
 
-func NewRepositories(database *pgxpool.Pool) *Repositories {
+type DataInitRepositories struct {
+	Database *pgxpool.Pool
+}
+
+func NewRepositories(data DataInitRepositories) *Repositories {
 	return &Repositories{
-		UserRepository: NewUserRepository(database),
+		UserRepository: NewUserRepository(data.Database),
 	}
 }

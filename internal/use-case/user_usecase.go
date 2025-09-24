@@ -1,6 +1,8 @@
 package use_case
 
-import "clean-arc-2/internal/domains/user"
+import (
+	"clean-arc-2/internal/domains/user"
+)
 
 type UserUseCase struct {
 	userRepository user.Repository
